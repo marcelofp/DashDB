@@ -36,13 +36,22 @@ export function flowIntensity(rate: number | null): number {
     : Math.min(1, Math.max(0, rate) / demoConfig.flow.saturationSqlPerSecond) **
         0.7;
 }
+export function flowIntensities(rates: (number | null)[]): number[] {
+  const peak = Math.max(0, ...rates.map((rate) => rate ?? 0));
+  if (!peak) return rates.map(() => 0);
+  return rates.map((rate) => {
+    if (rate === null || rate <= 0) return 0;
+    const relative = (rate / peak) ** 0.7;
+    return relative * (0.6 + flowIntensity(rate) * 0.4);
+  });
+}
 export function particleCounts(rates: (number | null)[], economical = false) {
   const budget = economical ? 28 : demoConfig.flow.totalParticleBudget;
-  const desired = rates.map((rate) =>
-    rate !== null && rate > 0
+  const desired = flowIntensities(rates).map((intensity) =>
+    intensity > 0
       ? Math.max(
           1,
-          Math.round(flowIntensity(rate) * demoConfig.flow.maxParticlesPerPath),
+          Math.round(intensity * demoConfig.flow.maxParticlesPerPath),
         )
       : 0,
   );

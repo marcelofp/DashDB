@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createSample,
   flowIntensity,
+  flowIntensities,
   particleCounts,
   periodHistory,
   sharesOf,
@@ -120,6 +121,13 @@ describe("motor determinístico e coerência", () => {
     expect(
       particleCounts(Array(7).fill(99999), true).reduce((a, b) => a + b, 0),
     ).toBeLessThanOrEqual(28);
+  });
+  it("intensidade visual preserva a hierarquia mesmo com taxas reais baixas", () => {
+    const intensities = flowIntensities([33.05, 8.57, 2.48, 0, null]);
+    expect(intensities[0]).toBeGreaterThan(0.6);
+    expect(intensities[0]).toBeGreaterThan(intensities[1]);
+    expect(intensities[1]).toBeGreaterThan(intensities[2]);
+    expect(intensities.slice(3)).toEqual([0, 0]);
   });
   it("ambiente e filtros alteram os dados mantendo última amostra", () => {
     const s = createSample(options),

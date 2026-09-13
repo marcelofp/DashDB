@@ -6,7 +6,7 @@ import {
   type RefObject,
 } from "react";
 import { demoConfig, type Quality } from "../config";
-import { flowIntensity, particleCounts } from "../data/simulation";
+import { flowIntensities, particleCounts } from "../data/simulation";
 import type { AppActivity, SessionGroup } from "../data/contracts";
 import { sessionIntensity } from "./activity";
 import s from "../styles/Dashboard.module.css";
@@ -107,16 +107,24 @@ export default function EnergyFlows({
     apps.map((a) => a.sqlExecutionsPerSecond.value),
     quality === "eco",
   );
+  const appRates = apps.map((app) => app.sqlExecutionsPerSecond.value);
+  const appIntensities = flowIntensities(appRates);
+  const peakRate = Math.max(0, ...appRates.map((rate) => rate ?? 0));
   // Session streams describe concurrent activity, not completed query events.
   const streams = [
     ...apps.map((app, i) => ({
-      id: app.id, channel: "sql", intensity: flowIntensity(app.sqlExecutionsPerSecond.value),
+      id: app.id, channel: "sql", intensity: appIntensities[i],
+      dominant:
+        app.sqlExecutionsPerSecond.value !== null &&
+        app.sqlExecutionsPerSecond.value > 0 &&
+        app.sqlExecutionsPerSecond.value === peakRate,
       count: counts[i], path: layout.paths[i], duration: demoConfig.flow.durationSeconds,
     })),
     ...sessions.map((group, i) => {
       const intensity = sessionIntensity(group.executing);
       return {
         id: group.id, channel: "session", intensity,
+        dominant: false,
         count: intensity > 0 ? Math.ceil(intensity * (quality === "eco" ? 3 : 5)) : 0,
         path: layout.sessionPaths[i], duration: 3.8 - intensity * 1.2,
       };
@@ -136,10 +144,10 @@ export default function EnergyFlows({
         </filter>
       </defs>
       {streams.map((stream) => {
-        const { intensity, count, path, duration, id, channel } = stream;
+        const { intensity, count, path, duration, id, channel, dominant } = stream;
         const session = channel === "session";
         const color = session ? "#25dbff" :
-            intensity > 0.4
+            dominant
               ? "#d946ef"
               : intensity > 0.2
                 ? "#7c3aff"

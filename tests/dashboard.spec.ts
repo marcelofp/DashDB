@@ -75,6 +75,16 @@ test("pico ERP aumenta volume, espessura e partículas; seleção abre resumo", 
   const flow = page.locator('[data-flow="erp"]'),
     intensity = +(await flow.getAttribute("data-intensity"))!,
     particles = +(await flow.getAttribute("data-particles"))!;
+  await expect(flow.locator("path").first()).toHaveAttribute("stroke", "#d946ef");
+  expect(
+    await page
+      .getByTestId("app-erp")
+      .locator('span[style*="background"]')
+      .getAttribute("style"),
+  ).toContain("var(--magenta)");
+  expect(intensity).toBeGreaterThan(
+    +(await page.locator('[data-flow="portal"]').getAttribute("data-intensity"))!,
+  );
   await scenario(page, "erp");
   expect(+(await flow.getAttribute("data-intensity"))!).toBeGreaterThan(
     intensity,

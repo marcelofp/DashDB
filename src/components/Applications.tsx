@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { applications } from "../config";
 import type { DashboardSample } from "../data/contracts";
-import { flowIntensity } from "../data/simulation";
+import { flowIntensities } from "../data/simulation";
 import { number, Panel } from "./Primitives";
 import s from "../styles/Dashboard.module.css";
 
@@ -46,6 +46,11 @@ export default function Applications({
   setHighlighted: (id: string | null) => void;
 }) {
   const current = sample.applications.find((a) => a.id === selected);
+  const rates = sample.applications.map(
+    (app) => app.sqlExecutionsPerSecond.value,
+  );
+  const intensities = flowIntensities(rates);
+  const peakRate = Math.max(0, ...rates.map((rate) => rate ?? 0));
   return (
     <Panel
       title="Aplicações que acessam o banco"
@@ -65,9 +70,10 @@ export default function Applications({
               applications[6],
             label = app.name ?? config.name,
             Icon = liveIcons[app.id as keyof typeof liveIcons] ?? icons[config.icon],
-            intensity = flowIntensity(app.sqlExecutionsPerSecond.value);
+            intensity = intensities[i],
+            rate = app.sqlExecutionsPerSecond.value;
           const color =
-            intensity > 0.4
+            rate !== null && rate > 0 && rate === peakRate
               ? "var(--magenta)"
               : intensity > 0.2
                 ? "var(--violet)"
