@@ -14,9 +14,11 @@ import { LiveDataSource } from "./data/LiveDataSource";
 const requestedSource = new URLSearchParams(window.location.search).get(
   "source",
 );
+const demoOnly = import.meta.env.VITE_DEMO_ONLY === "true";
 const live =
-  requestedSource === "live" ||
-  (requestedSource !== "demo" && import.meta.env.VITE_DATA_MODE === "live");
+  !demoOnly &&
+  (requestedSource === "live" ||
+    (requestedSource !== "demo" && import.meta.env.VITE_DATA_MODE === "live"));
 const source = live ? new LiveDataSource() : undefined;
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

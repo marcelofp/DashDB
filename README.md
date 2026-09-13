@@ -6,6 +6,8 @@ O projeto inclui uma demonstração determinística e integração real com duas
 
 ![Prévia do painel](evidence/full-hd.png)
 
+**[Abrir demonstração online](https://marcelofp.github.io/DashDB/)** — versão estática com dados simulados, sem conexão com bancos reais.
+
 ## Executar a demonstração
 
 Requer Node.js 22.12+ e npm 11+.
@@ -81,3 +83,7 @@ npm run test:e2e
 ```
 
 O painel diferencia `0` de informação indisponível. Uma falha do coletor remove valores atuais, preserva o último histórico válido e nunca troca silenciosamente para dados simulados. IOPS permanece `null` enquanto não houver uma fonte real de telemetria de disco.
+
+## Publicação da demonstração
+
+O workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) cria um build exclusivo para o GitHub Pages com `VITE_DEMO_ONLY=true` e base `/DashDB/`. Cada atualização da branch `main` valida os testes unitários, gera `dist/` e publica a demonstração. Credenciais e o serviço Python não fazem parte do artefato estático.
