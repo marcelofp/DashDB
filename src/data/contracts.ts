@@ -64,6 +64,7 @@ export interface DashboardSample {
     availabilitySince?: number;
     collectorDurationMs?: number;
     attributionAvailable?: boolean;
+    rateWindowMs?: number | null;
     sourceId?: LiveSourceId;
     sourceLabel?: string;
     platform?: string;

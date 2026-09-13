@@ -37,6 +37,10 @@ O usuário do banco precisa apenas de `CONNECT` e `EXECUTE` nas funções de mon
 
 Contadores acumulados são convertidos em taxas com relógio monotônico. O primeiro ciclo somente estabelece a referência. Reinício, redução de contador, reconexão ou lacuna superior a 30 segundos invalida o delta em vez de produzir um valor enganoso.
 
+As taxas usam uma janela móvel curta, normalmente entre 8 e 10 segundos. Isso absorve a diferença de instante entre a consolidação dos contadores do banco e das conexões sem manter valores antigos após falha, reconexão ou reinício. Uma divergência pequena, dentro de 5%, é normalizada pelo total comprovado do banco; divergências maiores continuam indisponíveis.
+
+No ambiente Db2 atual, as origens de negócio são reconhecidas pelos campos técnicos informados pelo cliente: hostname, workstation, nome de aplicação e nome do cliente. O painel separa os canais Oniros e Egeos do CreaOne, CreaNet API, Certidões, Retorno Bancário, serviços técnicos/administração e atividade ainda não identificada. Novas origens permanecem em `OUTROS` até haver evidência suficiente para classificá-las.
+
 ## Proteções
 
 - SQL fixo, sem aceitar consultas fornecidas pela API.

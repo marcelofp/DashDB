@@ -11,14 +11,16 @@ import sqlite3
 import time
 
 GROUPS = [
+    ("creaone_oniros", "CREAONE · ONIROS"),
+    ("creaone_egeos", "CREAONE · EGEOS"),
     ("creanet", "CREANET API"),
     ("certidoes", "CERTIDÕES"),
-    ("iis", "IIS / WEB"),
-    ("java", "JAVA / JDBC"),
-    ("bi", "BI / ANALYTICS"),
-    ("monitor", "MONITOR"),
+    ("retorno", "RETORNO BANCÁRIO"),
+    ("services", "SERVIÇOS / ADM"),
     ("others", "OUTROS"),
 ]
+RATE_WINDOW_SECONDS = 8
+ATTRIBUTION_TOLERANCE = 0.05
 UNITS = dict(
     cpu="%",
     memory="%",
@@ -36,7 +38,8 @@ SQL = {
         ACT_COMPLETED_TOTAL,POOL_DATA_L_READS,POOL_INDEX_L_READS,POOL_DATA_P_READS,
         POOL_INDEX_P_READS,DEADLOCKS,LOCK_TIMEOUTS FROM TABLE(SYSPROC.MON_GET_DATABASE(-1)) AS T""",
     "connections": """SELECT MEMBER,APPLICATION_HANDLE,APPLICATION_ID,APPLICATION_NAME,
-        CLIENT_APPLNAME,CLIENT_WRKSTNNAME,SESSION_AUTH_ID,TOTAL_APP_SECTION_EXECUTIONS
+        CLIENT_APPLNAME,CLIENT_WRKSTNNAME,CLIENT_HOSTNAME,SESSION_AUTH_ID,
+        TOTAL_APP_SECTION_EXECUTIONS
         FROM TABLE(SYSPROC.MON_GET_CONNECTION(NULL,-1)) AS T""",
     "activities": """SELECT APPLICATION_HANDLE,ACTIVITY_STATE
         FROM TABLE(SYSPROC.MON_GET_ACTIVITY(NULL,-1)) AS T""",
@@ -130,26 +133,32 @@ def delta(now, before, field):
 
 
 def classify(row):
-    app = str(row.get("APPLICATION_NAME") or "").lower()
-    client = str(row.get("CLIENT_APPLNAME") or "").lower()
-    workstation = str(row.get("CLIENT_WRKSTNNAME") or "").lower()
-    auth = str(row.get("SESSION_AUTH_ID") or "").upper()
-    if (
-        auth == "DASHDBMON"
-        or app == "monitordash"
-        or client in {"dashdb", "monitordash"}
-    ):
-        return "monitor"
+    app = str(row.get("APPLICATION_NAME") or "").strip().lower()
+    client = str(row.get("CLIENT_APPLNAME") or "").strip().lower()
+    workstation = str(row.get("CLIENT_WRKSTNNAME") or "").strip().lower()
+    hostname = str(row.get("CLIENT_HOSTNAME") or "").strip().lower()
+    origin = f"{workstation} {hostname}"
+    identity = f"{app} {client} {origin}"
+    if "oniro" in origin:
+        return "creaone_oniros"
+    if "egeo" in origin:
+        return "creaone_egeos"
+    if "framework.scheduler" in app or "retorno" in identity:
+        return "retorno"
     if "creanetapi" in app or "creanetapi" in client:
         return "creanet"
-    if "certidoes" in client or "certidoes" in workstation:
+    if "certidoes" in identity or app == "dotnet":
         return "certidoes"
-    if "w3wp" in app:
-        return "iis"
-    if auth == "USERBI" or any(t in app for t in ["powerbi", "tableau"]):
-        return "bi"
-    if "db2jcc" in app or "jdbc" in app:
-        return "java"
+    if (
+        app == "monitordash"
+        or client in {"dashdb", "monitordash"}
+        or app == "asncap"
+        or app == "db2bp"
+        or app.startswith("codex_readonly")
+        or app in {"toad", "toad.exe", "dbvis", "dbeaver"}
+        or app == "python"
+    ):
+        return "services"
     return "others"
 
 
@@ -278,12 +287,13 @@ class History:
 
 
 class Collector:
-    def __init__(self, reader, history, source_info=None):
+    def __init__(
+        self, reader, history, source_info=None, rate_window_seconds=RATE_WINDOW_SECONDS
+    ):
         self.reader, self.history = reader, history
         self.source_info = source_info or DEFAULT_SOURCE
-        self.previous = None
-        self.previous_time = None
-        self.connection_previous = {}
+        self.rate_window_seconds = rate_window_seconds
+        self.counter_samples = []
         self.query_previous = {}
         self.queries = []
         self.query_at = 0
@@ -314,22 +324,38 @@ class Collector:
             match = re.search(r"SQLSTATE[= :]+([A-Z0-9]{5})", str(error))
             self.last_error = match.group(1) if match else type(error).__name__
             self.reader.close()
-            self.previous = None
-            self.connection_previous = {}
+            self.counter_samples = []
             self.sample = unavailable(self.sample, at, self.source_info)
             self.sample["history"], _, _ = self.history.add(self.sample)
             return self.sample
         self.last_error = None
-        elapsed = (
-            started - self.previous_time if self.previous_time is not None else None
-        )
+        new_connections = {
+            (row["MEMBER"], row["APPLICATION_HANDLE"], row["APPLICATION_ID"]): row
+            for row in connections
+        }
+        latest = self.counter_samples[-1] if self.counter_samples else None
+        if latest and (
+            database["DB_CONN_TIME"] != latest[1]["DB_CONN_TIME"]
+            or not 0 < started - latest[0] < 30
+            or delta(database, latest[1], "TOTAL_APP_SECTION_EXECUTIONS") is None
+        ):
+            self.counter_samples = []
+        self.counter_samples.append((started, database, new_connections))
+        while (
+            len(self.counter_samples) > 2
+            and started - self.counter_samples[1][0] >= self.rate_window_seconds
+        ):
+            self.counter_samples.pop(0)
+        baseline = self.counter_samples[0] if len(self.counter_samples) > 1 else None
+        elapsed = started - baseline[0] if baseline else None
         valid = (
-            self.previous is not None
-            and database["DB_CONN_TIME"] == self.previous["DB_CONN_TIME"]
+            baseline is not None
+            and database["DB_CONN_TIME"] == baseline[1]["DB_CONN_TIME"]
             and elapsed is not None
             and 0 < elapsed < 30
         )
-        previous = self.previous if valid else {}
+        previous = baseline[1] if valid else {}
+        connection_previous = baseline[2] if valid else {}
         d = {
             k: delta(database, previous, k)
             for k in [
@@ -353,6 +379,8 @@ class Collector:
             ]
         ):
             valid = False
+            self.counter_samples = [(started, database, new_connections)]
+            elapsed = None
         rate = d["TOTAL_APP_SECTION_EXECUTIONS"] / elapsed if valid else None
         response = (
             d["TOTAL_ACT_TIME"] / d["ACT_COMPLETED_TOTAL"]
@@ -396,10 +424,9 @@ class Collector:
             if a["ACTIVITY_STATE"] == "EXECUTING"
         }
         group_counts = {k: 0.0 for k, _ in GROUPS}
-        new_connections = {}
         for row in connections:
             key = (row["MEMBER"], row["APPLICATION_HANDLE"], row["APPLICATION_ID"])
-            before = self.connection_previous.get(key)
+            before = connection_previous.get(key)
             diff = (
                 delta(row, before, "TOTAL_APP_SECTION_EXECUTIONS")
                 if before and valid
@@ -407,21 +434,31 @@ class Collector:
             )
             if diff is not None:
                 group_counts[classify(row)] += diff
-            new_connections[key] = row
-        # Counters have separate roll-up instants. Never invent application shares when they disagree.
+        # Db2 updates database and connection counters at slightly different instants. A short
+        # rolling window removes most roll-up flicker; a small measured skew is normalized to
+        # the database total, while larger disagreement remains explicitly unavailable.
         attributed = sum(group_counts.values())
-        attribution_ok = valid and attributed <= d["TOTAL_APP_SECTION_EXECUTIONS"]
+        total_executions = d["TOTAL_APP_SECTION_EXECUTIONS"] if valid else None
+        attribution_ok = valid and (
+            (total_executions == 0 and attributed == 0)
+            or (
+                total_executions > 0
+                and attributed <= total_executions * (1 + ATTRIBUTION_TOLERANCE) + 2
+            )
+        )
         if attribution_ok:
-            group_counts["others"] += d["TOTAL_APP_SECTION_EXECUTIONS"] - attributed
+            if attributed > total_executions:
+                scale = total_executions / attributed
+                group_counts = {
+                    key: value * scale for key, value in group_counts.items()
+                }
+                attributed = total_executions
+            group_counts["others"] += total_executions - attributed
         applications = []
         for key, name in GROUPS:
             group_rate = group_counts[key] / elapsed if attribution_ok else None
             share = (
-                (
-                    100 * group_counts[key] / d["TOTAL_APP_SECTION_EXECUTIONS"]
-                    if d["TOTAL_APP_SECTION_EXECUTIONS"]
-                    else 0
-                )
+                (100 * group_counts[key] / total_executions if total_executions else 0)
                 if attribution_ok
                 else None
             )
@@ -545,6 +582,7 @@ class Collector:
                 systemCollectedAt=self.system_at,
                 queriesCollectedAt=self.query_at,
                 includesMonitor=True,
+                rateWindowMs=round(elapsed * 1000) if valid else None,
             ),
         )
         self.sample["metrics"]["cpu"]["collectedAt"] = self.system_at or at
@@ -555,16 +593,10 @@ class Collector:
             "availability", availability, at
         )
         self.sample["metadata"]["availabilitySince"] = start
-        self.previous = database
-        self.previous_time = started
-        self.connection_previous = new_connections
         return self.sample
 
 
 def read_config(filename="db2.json"):
-    default = (
-        Path(os.environ.get("CREDENTIALS_DIRECTORY", "/etc/dashdb"))
-        / filename
-    )
+    default = Path(os.environ.get("CREDENTIALS_DIRECTORY", "/etc/dashdb")) / filename
     configured = os.environ.get("DB2_CONFIG") if filename == "db2.json" else None
     return json.loads(Path(configured or default).read_text())

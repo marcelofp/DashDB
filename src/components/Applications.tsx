@@ -25,6 +25,15 @@ const icons = {
   users: Users,
   layers: Layers,
 };
+const liveIcons = {
+  creaone_oniros: Globe,
+  creaone_egeos: Users,
+  creanet: Network,
+  certidoes: BriefcaseBusiness,
+  retorno: CalendarDays,
+  services: ChartNoAxesCombined,
+  others: Layers,
+};
 export default function Applications({
   sample,
   selected,
@@ -55,7 +64,7 @@ export default function Applications({
               applications[i] ??
               applications[6],
             label = app.name ?? config.name,
-            Icon = icons[config.icon],
+            Icon = liveIcons[app.id as keyof typeof liveIcons] ?? icons[config.icon],
             intensity = flowIntensity(app.sqlExecutionsPerSecond.value);
           const color =
             intensity > 0.4

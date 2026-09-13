@@ -10,6 +10,7 @@ class Reader:
     def __init__(self):
         self.fail = False
         self.total = 100
+        self.connection_total = 100
         self.start = "activation-1"
 
     def close(self):
@@ -43,8 +44,9 @@ class Reader:
                     APPLICATION_NAME="CREANETAPI.exe",
                     CLIENT_APPLNAME="",
                     CLIENT_WRKSTNNAME="ATLAS",
+                    CLIENT_HOSTNAME="ATLAS",
                     SESSION_AUTH_ID="USERPROD",
-                    TOTAL_APP_SECTION_EXECUTIONS=self.total,
+                    TOTAL_APP_SECTION_EXECUTIONS=self.connection_total,
                 )
             ]
         if name == "activities":
@@ -71,6 +73,7 @@ class CollectorTests(unittest.TestCase):
         first = self.sample(0)
         self.assertIsNone(first["metrics"]["sql"]["value"])
         self.r.total += 20
+        self.r.connection_total += 20
         second = self.sample(2)
         self.assertEqual(second["metrics"]["sql"]["value"], 10)
         self.assertEqual(second["metrics"]["response"]["value"], 10)
@@ -92,6 +95,7 @@ class CollectorTests(unittest.TestCase):
     def test_failure_nulls_metrics_and_recovery_requires_baseline(self):
         self.sample(0)
         self.r.total += 10
+        self.r.connection_total += 10
         self.sample(2)
         self.r.fail = True
         bad = self.sample(4)
@@ -100,16 +104,20 @@ class CollectorTests(unittest.TestCase):
         self.assertNotIn("secret", str(bad))
         self.r.fail = False
         self.r.total += 500
+        self.r.connection_total += 500
         self.assertIsNone(self.sample(6)["metrics"]["sql"]["value"])
         self.r.total += 4
+        self.r.connection_total += 4
         self.assertEqual(self.sample(8)["metrics"]["sql"]["value"], 2)
 
     def test_counter_reset_and_activation_change_never_spike(self):
         self.sample(0)
         self.r.total = 5
+        self.r.connection_total = 5
         self.assertIsNone(self.sample(2)["metrics"]["sql"]["value"])
         self.r.start = "activation-2"
         self.r.total = 1000
+        self.r.connection_total = 1000
         self.assertIsNone(self.sample(4)["metrics"]["sql"]["value"])
 
     def test_unknown_iops_stays_unknown(self):
@@ -160,14 +168,78 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(failed["metadata"]["sourceId"], "cirion")
         self.assertEqual(failed["metadata"]["platform"], "AIX")
 
-    def test_monitor_dash_is_classified_as_monitor_with_temporary_auth_id(self):
+    def test_business_origins_are_classified_from_process_and_host(self):
+        cases = [
+            (
+                dict(APPLICATION_NAME="w3wp.exe", CLIENT_HOSTNAME="ONIRO-12-DC"),
+                "creaone_oniros",
+            ),
+            (
+                dict(APPLICATION_NAME="w3wp.exe", CLIENT_HOSTNAME="EGEO-13-DC"),
+                "creaone_egeos",
+            ),
+            (dict(APPLICATION_NAME="CREANETAPI.exe"), "creanet"),
+            (
+                dict(
+                    APPLICATION_NAME="dotnet",
+                    CLIENT_WRKSTNNAME="certidoes-deployment",
+                ),
+                "certidoes",
+            ),
+            (dict(APPLICATION_NAME="Framework.Scheduler."), "retorno"),
+            (dict(APPLICATION_NAME="asncap"), "services"),
+            (dict(APPLICATION_NAME="w3wp.exe"), "others"),
+        ]
+        for row, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(classify(row), expected)
+
+    def test_monitor_dash_is_classified_as_service_with_temporary_auth_id(self):
         row = dict(
             APPLICATION_NAME="MonitorDash",
             CLIENT_APPLNAME="MonitorDash",
             CLIENT_WRKSTNNAME="dashboard",
             SESSION_AUTH_ID="TEMPORARY.LDAP.USER",
         )
-        self.assertEqual(classify(row), "monitor")
+        self.assertEqual(classify(row), "services")
+
+    def test_short_counter_pause_uses_stable_window_instead_of_zero(self):
+        self.sample(0)
+        self.r.total += 20
+        self.r.connection_total += 20
+        self.assertEqual(self.sample(2)["metrics"]["sql"]["value"], 10)
+        paused = self.sample(4)
+        self.assertEqual(paused["metrics"]["sql"]["value"], 5)
+        self.assertEqual(paused["metadata"]["rateWindowMs"], 4000)
+
+    def test_small_counter_rollup_skew_is_normalized(self):
+        self.sample(0)
+        self.r.total += 100
+        self.r.connection_total += 103
+        sample = self.sample(2)
+        self.assertTrue(sample["metadata"]["attributionAvailable"])
+        self.assertAlmostEqual(
+            sum(
+                app["sqlExecutionsPerSecond"]["value"] for app in sample["applications"]
+            ),
+            sample["metrics"]["sql"]["value"],
+        )
+        self.assertAlmostEqual(
+            sum(app["sharePercent"] for app in sample["applications"]), 100
+        )
+
+    def test_large_counter_disagreement_remains_unavailable(self):
+        self.sample(0)
+        self.r.total += 10
+        self.r.connection_total += 30
+        sample = self.sample(2)
+        self.assertFalse(sample["metadata"]["attributionAvailable"])
+        self.assertTrue(
+            all(
+                app["sqlExecutionsPerSecond"]["value"] is None
+                for app in sample["applications"]
+            )
+        )
 
 
 class Db2ReaderTests(unittest.TestCase):
