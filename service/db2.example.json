@@ -1,0 +1,7 @@
+{
+  "database": "DATABASE_NAME",
+  "host": "DB_HOST",
+  "port": 60000,
+  "username": "DASHDBMON",
+  "password": "REPLACE_OUTSIDE_GIT"
+}

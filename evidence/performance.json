@@ -1,0 +1,67 @@
+{
+  "measuredAt": "2026-09-13T02:13:46.084Z",
+  "browser": "153.0.8010.12",
+  "method": "R3F useFrame timestamps, 8 seconds, Chromium headless, DPR 1; measures frame scheduling, not physical display scanout",
+  "reports": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "quality": "high",
+      "frames": 434,
+      "fps": 54.03,
+      "p95FrameIntervalMs": 24.2,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+      "particles": 24,
+      "canvasPixels": [
+        819,
+        444
+      ],
+      "errors": []
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "quality": "eco",
+      "frames": 447,
+      "fps": 55.75,
+      "p95FrameIntervalMs": 20.6,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+      "particles": 24,
+      "canvasPixels": [
+        614,
+        333
+      ],
+      "errors": []
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "quality": "high",
+      "frames": 222,
+      "fps": 27.62,
+      "p95FrameIntervalMs": 76.4,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+      "particles": 24,
+      "canvasPixels": [
+        1638,
+        889
+      ],
+      "errors": []
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "quality": "eco",
+      "frames": 348,
+      "fps": 43.4,
+      "p95FrameIntervalMs": 42.4,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+      "particles": 24,
+      "canvasPixels": [
+        1228,
+        667
+      ],
+      "errors": []
+    }
+  ]
+}

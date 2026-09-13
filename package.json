@@ -1,0 +1,44 @@
+{
+  "name": "dashdb",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0",
+    "npm": ">=11"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "capture": "node scripts/capture.mjs",
+    "test:performance": "node scripts/performance.mjs"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-is": "19.2.8",
+    "@react-three/fiber": "9.7.0",
+    "three": "0.186.0",
+    "recharts": "3.10.1",
+    "lucide-react": "1.45.0",
+    "@fontsource/rajdhani": "5.3.0",
+    "@fontsource/barlow": "5.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@types/node": "22.20.2",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.0",
+    "vitest": "5.0.0",
+    "@playwright/test": "1.63.0"
+  },
+  "packageManager": "npm@11.6.2"
+}

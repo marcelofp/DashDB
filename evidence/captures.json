@@ -1,0 +1,46 @@
+[
+  {
+    "name": "full-hd",
+    "width": 1920,
+    "height": 1080,
+    "errors": [],
+    "layout": {
+      "scrollWidth": 1920,
+      "scrollHeight": 1080,
+      "renderer": "webgl"
+    }
+  },
+  {
+    "name": "4k",
+    "width": 3840,
+    "height": 2160,
+    "errors": [],
+    "layout": {
+      "scrollWidth": 3840,
+      "scrollHeight": 2160,
+      "renderer": "webgl"
+    }
+  },
+  {
+    "name": "compact",
+    "width": 1024,
+    "height": 768,
+    "errors": [],
+    "layout": {
+      "scrollWidth": 1024,
+      "scrollHeight": 1921,
+      "renderer": "webgl"
+    }
+  },
+  {
+    "name": "mobile",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "layout": {
+      "scrollWidth": 390,
+      "scrollHeight": 3439,
+      "renderer": "webgl"
+    }
+  }
+]

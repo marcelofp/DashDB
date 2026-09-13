@@ -1,0 +1,67 @@
+{
+  "measuredAt": "2026-09-13T03:41:34.262Z",
+  "browser": "153.0.8010.12",
+  "method": "R3F useFrame timestamps, 8 seconds, Chromium headed, DPR 1; measures frame scheduling, not physical display scanout",
+  "reports": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "quality": "high",
+      "frames": 485,
+      "fps": 60.61,
+      "p95FrameIntervalMs": 17.1,
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+      "particles": 47,
+      "canvasPixels": [
+        819,
+        408
+      ],
+      "errors": []
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "quality": "eco",
+      "frames": 490,
+      "fps": 61.24,
+      "p95FrameIntervalMs": 20.6,
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+      "particles": 39,
+      "canvasPixels": [
+        614,
+        306
+      ],
+      "errors": []
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "quality": "high",
+      "frames": 487,
+      "fps": 60.86,
+      "p95FrameIntervalMs": 17.2,
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+      "particles": 47,
+      "canvasPixels": [
+        1638,
+        817
+      ],
+      "errors": []
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "quality": "eco",
+      "frames": 486,
+      "fps": 60.74,
+      "p95FrameIntervalMs": 17.3,
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+      "particles": 39,
+      "canvasPixels": [
+        1228,
+        613
+      ],
+      "errors": []
+    }
+  ]
+}

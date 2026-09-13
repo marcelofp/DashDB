@@ -1,0 +1,43 @@
+[Unit]
+Description=DashDB telemetry collector and dashboard
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=10
+
+[Service]
+Type=notify
+NotifyAccess=all
+User=dashdb
+Group=dashdb
+WorkingDirectory=/opt/dashdb/current/service
+LoadCredential=db2.json:/etc/dashdb/db2.json
+LoadCredential=db2-aix.json:/etc/dashdb/db2-aix.json
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+Environment=STATE_DIRECTORY=/var/lib/dashdb
+ExecStart=/opt/dashdb/venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 8088 --workers 1 --no-proxy-headers --no-access-log --limit-concurrency 64 --timeout-keep-alive 10 --timeout-graceful-shutdown 5
+Restart=on-failure
+RestartSec=5
+WatchdogSec=30
+TimeoutStopSec=15
+StateDirectory=dashdb
+StateDirectoryMode=0750
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=512M
+CPUQuota=50%
+TasksMax=64
+LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target
