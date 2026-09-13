@@ -325,19 +325,13 @@ export default function App({
               />
               <div className={s.gaugeCaption}>
                 {live
-                  ? "Memória ocupada · inclui cache do SO"
+                  ? "Memória ocupada"
                   : "Uso de memória do servidor"}
               </div>
               <div className={s.gaugeState}>
-                <span
-                  className={
-                    metrics.memory.value === null ? s.warning : s.muted
-                  }
-                >
-                  {metrics.memory.value === null
-                    ? "Sem telemetria"
-                    : "Capacidade monitorada"}
-                </span>
+                {metrics.memory.value === null && (
+                  <span className={s.warning}>Sem telemetria</span>
+                )}
               </div>
             </Panel>
           </div>
@@ -695,15 +689,11 @@ export default function App({
               <span>
                 Conexões abertas <b>{number(metrics.connections.value)}</b>
               </span>
-              <span>
-                {live ? (
-                  "Inclui monitoramento"
-                ) : (
-                  <>
-                    Limite demo <b>{demoConfig.connectionLimit}</b>
-                  </>
-                )}
-              </span>
+              {!live && (
+                <span>
+                  Limite demo <b>{demoConfig.connectionLimit}</b>
+                </span>
+              )}
             </div>
           </Panel>
           <Panel
