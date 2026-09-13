@@ -82,7 +82,7 @@ npm run build
 npm run test:e2e
 ```
 
-O painel diferencia `0` de informação indisponível. Uma falha do coletor remove valores atuais, preserva o último histórico válido e nunca troca silenciosamente para dados simulados. IOPS permanece `null` enquanto não houver uma fonte real de telemetria de disco.
+O painel diferencia `0` de informação indisponível. Uma falha do coletor remove valores atuais, preserva o último histórico válido e nunca troca silenciosamente para dados simulados. O IOPS é calculado com os deltas dos contadores físicos de leitura e gravação observados pelo Db2.
 
 ## Publicação da demonstração
 

@@ -31,6 +31,15 @@ class Reader:
                     POOL_INDEX_L_READS=self.total * 10,
                     POOL_DATA_P_READS=self.total,
                     POOL_INDEX_P_READS=self.total,
+                    POOL_TEMP_DATA_P_READS=self.total,
+                    POOL_TEMP_INDEX_P_READS=self.total,
+                    POOL_XDA_P_READS=self.total,
+                    POOL_TEMP_XDA_P_READS=self.total,
+                    POOL_DATA_WRITES=self.total,
+                    POOL_INDEX_WRITES=self.total,
+                    POOL_XDA_WRITES=self.total,
+                    DIRECT_READ_REQS=self.total,
+                    DIRECT_WRITE_REQS=self.total,
                     DEADLOCKS=0,
                     LOCK_TIMEOUTS=0,
                 )
@@ -120,8 +129,11 @@ class CollectorTests(unittest.TestCase):
         self.r.connection_total = 1000
         self.assertIsNone(self.sample(4)["metrics"]["sql"]["value"])
 
-    def test_unknown_iops_stays_unknown(self):
+    def test_iops_requires_a_baseline_then_uses_physical_io_deltas(self):
         self.assertIsNone(self.sample(0)["metrics"]["iops"]["value"])
+        self.r.total += 20
+        self.r.connection_total += 20
+        self.assertEqual(self.sample(2)["metrics"]["iops"]["value"], 110)
 
     def test_stale_sample_has_no_green_state(self):
         s = self.sample(0)

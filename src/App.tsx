@@ -497,7 +497,9 @@ export default function App({
                   <strong>
                     {metrics.iops.value === null
                       ? "—"
-                      : `${number(metrics.iops.value / 1000, 1)}k`}
+                      : metrics.iops.value < 1000
+                        ? number(metrics.iops.value)
+                        : `${number(metrics.iops.value / 1000, 1)}k`}
                   </strong>
                   {!(live && metrics.iops.value === null) && (
                     <>
@@ -883,7 +885,7 @@ export default function App({
           </p>
           <span>
             {live
-              ? "Contadores do Db2 a cada 2 s; servidor a cada 10 s. SQL inclui o monitor. OUTROS inclui atividade sem origem atribuída. IOPS aguarda integração de disco."
+              ? "Contadores do Db2 a cada 2 s; servidor a cada 10 s. SQL inclui o monitor. OUTROS inclui atividade sem origem atribuída. IOPS mede a atividade física de leitura e gravação observada pelo Db2."
               : "Todos os ambientes e cenários são simulados."}
           </span>
         </section>

@@ -19,6 +19,19 @@ GROUPS = [
     ("services", "SERVIÇOS / ADM"),
     ("others", "OUTROS"),
 ]
+IOPS_COUNTERS = [
+    "POOL_DATA_P_READS",
+    "POOL_INDEX_P_READS",
+    "POOL_TEMP_DATA_P_READS",
+    "POOL_TEMP_INDEX_P_READS",
+    "POOL_XDA_P_READS",
+    "POOL_TEMP_XDA_P_READS",
+    "POOL_DATA_WRITES",
+    "POOL_INDEX_WRITES",
+    "POOL_XDA_WRITES",
+    "DIRECT_READ_REQS",
+    "DIRECT_WRITE_REQS",
+]
 RATE_WINDOW_SECONDS = 8
 ATTRIBUTION_TOLERANCE = 0.05
 UNITS = dict(
@@ -36,7 +49,10 @@ UNITS = dict(
 SQL = {
     "database": """SELECT MEMBER,DB_CONN_TIME,TOTAL_APP_SECTION_EXECUTIONS,TOTAL_ACT_TIME,
         ACT_COMPLETED_TOTAL,POOL_DATA_L_READS,POOL_INDEX_L_READS,POOL_DATA_P_READS,
-        POOL_INDEX_P_READS,DEADLOCKS,LOCK_TIMEOUTS FROM TABLE(SYSPROC.MON_GET_DATABASE(-1)) AS T""",
+        POOL_INDEX_P_READS,POOL_TEMP_DATA_P_READS,POOL_TEMP_INDEX_P_READS,
+        POOL_XDA_P_READS,POOL_TEMP_XDA_P_READS,POOL_DATA_WRITES,POOL_INDEX_WRITES,
+        POOL_XDA_WRITES,DIRECT_READ_REQS,DIRECT_WRITE_REQS,DEADLOCKS,LOCK_TIMEOUTS
+        FROM TABLE(SYSPROC.MON_GET_DATABASE(-1)) AS T""",
     "connections": """SELECT MEMBER,APPLICATION_HANDLE,APPLICATION_ID,APPLICATION_NAME,
         CLIENT_APPLNAME,CLIENT_WRKSTNNAME,CLIENT_HOSTNAME,SESSION_AUTH_ID,
         TOTAL_APP_SECTION_EXECUTIONS
@@ -364,8 +380,7 @@ class Collector:
                 "ACT_COMPLETED_TOTAL",
                 "POOL_DATA_L_READS",
                 "POOL_INDEX_L_READS",
-                "POOL_DATA_P_READS",
-                "POOL_INDEX_P_READS",
+                *IOPS_COUNTERS,
                 "DEADLOCKS",
                 "LOCK_TIMEOUTS",
             ]
@@ -401,6 +416,11 @@ class Collector:
             physical = d["POOL_DATA_P_READS"] + d["POOL_INDEX_P_READS"]
             if logical and physical <= logical:
                 cache = 100 * (1 - physical / logical)
+        iops = (
+            sum(d[counter] for counter in IOPS_COUNTERS) / elapsed
+            if valid and all(d[counter] is not None for counter in IOPS_COUNTERS)
+            else None
+        )
         if at - self.system_at >= 10000:
             try:
                 self.system = self.reader.query("system")
@@ -514,7 +534,7 @@ class Collector:
             users=len({r["SESSION_AUTH_ID"] for r in connections}),
             availability=None,
             response=response,
-            iops=None,
+            iops=iops,
             cache=cache,
             sql=rate,
         )

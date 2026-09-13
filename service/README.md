@@ -33,7 +33,7 @@ O usuário do banco precisa apenas de `CONNECT` e `EXECUTE` nas funções de mon
 | Cache hit | Leituras lógicas e físicas | `null` quando o intervalo não permite razão válida |
 | Consultas pesadas | `MON_GET_PKG_CACHE_STMT` | Amostra agregada, sem publicar o texto SQL |
 | Disponibilidade | Sucessos observados pelo coletor | Não equivale a SLA histórico |
-| IOPS | Sem fonte integrada | Permanece `null` até existir telemetria de disco |
+| IOPS | Leituras e gravações físicas observadas por `MON_GET_DATABASE` | Soma dos deltas por segundo, incluindo requisições diretas |
 
 Contadores acumulados são convertidos em taxas com relógio monotônico. O primeiro ciclo somente estabelece a referência. Reinício, redução de contador, reconexão ou lacuna superior a 30 segundos invalida o delta em vez de produzir um valor enganoso.
 
