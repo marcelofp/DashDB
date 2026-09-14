@@ -2,6 +2,8 @@ package br.org.creasp.dashdb.tv;
 
 import android.app.Activity;
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
@@ -9,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -24,19 +27,41 @@ import android.widget.TextView;
 
 public final class MainActivity extends Activity {
     private static final long RETRY_DELAY_MS = 10_000L;
+    private static final long PAGE_TIMEOUT_MS = 8_000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView webView;
     private TextView connectionMessage;
     private boolean destroyed;
     private boolean mainFrameFailed;
+    private boolean pageReady;
+    private boolean viewportAdjusted;
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        Configuration configuration = new Configuration(
+                base.getResources().getConfiguration()
+        );
+        configuration.densityDpi = DisplayMetrics.DENSITY_DEFAULT;
+        super.attachBaseContext(base.createConfigurationContext(configuration));
+    }
+
+    private final Runnable pageTimeout = new Runnable() {
+        @Override
+        public void run() {
+            if (!destroyed && !pageReady) {
+                mainFrameFailed = true;
+                webView.stopLoading();
+                showConnectionError();
+            }
+        }
+    };
 
     private final Runnable retry = new Runnable() {
         @Override
         public void run() {
             if (!destroyed && connectionMessage.getVisibility() == View.VISIBLE) {
-                webView.reload();
-                handler.postDelayed(this, RETRY_DELAY_MS);
+                loadDashboard();
             }
         }
     };
@@ -76,7 +101,7 @@ public final class MainActivity extends Activity {
 
         setContentView(root);
         enterImmersiveMode();
-        webView.loadUrl(BuildConfig.DASHBOARD_URL);
+        loadDashboard();
         webView.requestFocus();
     }
 
@@ -105,6 +130,8 @@ public final class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView ignored, String url, Bitmap favicon) {
                 mainFrameFailed = false;
+                pageReady = false;
+                viewportAdjusted = false;
                 connectionMessage.setVisibility(View.GONE);
             }
 
@@ -122,7 +149,10 @@ public final class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView ignored, String url) {
                 if (!mainFrameFailed) {
+                    pageReady = true;
+                    adjustTvViewport(ignored);
                     connectionMessage.setVisibility(View.GONE);
+                    handler.removeCallbacks(pageTimeout);
                     handler.removeCallbacks(retry);
                 }
             }
@@ -162,9 +192,33 @@ public final class MainActivity extends Activity {
     }
 
     private void showConnectionError() {
+        handler.removeCallbacks(pageTimeout);
         connectionMessage.setVisibility(View.VISIBLE);
         handler.removeCallbacks(retry);
         handler.postDelayed(retry, RETRY_DELAY_MS);
+    }
+
+    private void loadDashboard() {
+        mainFrameFailed = false;
+        pageReady = false;
+        connectionMessage.setVisibility(View.GONE);
+        handler.removeCallbacks(pageTimeout);
+        webView.loadUrl(BuildConfig.DASHBOARD_URL);
+        handler.postDelayed(pageTimeout, PAGE_TIMEOUT_MS);
+    }
+
+    private void adjustTvViewport(WebView view) {
+        if (viewportAdjusted) return;
+        viewportAdjusted = true;
+        view.evaluateJavascript(
+                "(function(){"
+                        + "var m=document.querySelector('meta[name=viewport]');"
+                        + "if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}"
+                        + "m.setAttribute('content','width=1920, initial-scale=0.5, minimum-scale=0.5, maximum-scale=0.5, user-scalable=no');"
+                        + "return true;"
+                        + "})()",
+                null
+        );
     }
 
     @SuppressWarnings("deprecation")
