@@ -1,0 +1,51 @@
+plugins {
+    id "com.android.application"
+}
+
+def dashboardUrl = providers.gradleProperty("dashboardUrl")
+        .orElse("https://marcelofp.github.io/DashDB/")
+        .get()
+def escapedDashboardUrl = dashboardUrl
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+def signingStore = System.getenv("DASHDB_SIGNING_STORE")
+def signingPassword = System.getenv("DASHDB_SIGNING_PASSWORD")
+def signingAlias = System.getenv("DASHDB_SIGNING_ALIAS")
+def signingConfigured = signingStore && signingPassword && signingAlias
+
+android {
+    namespace "br.org.creasp.dashdb.tv"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "br.org.creasp.dashdb.tv"
+        minSdk 23
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+        buildConfigField "String", "DASHBOARD_URL", "\"${escapedDashboardUrl}\""
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        if (signingConfigured) {
+            release {
+                storeFile file(signingStore)
+                storePassword signingPassword
+                keyAlias signingAlias
+                keyPassword signingPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            if (signingConfigured) signingConfig signingConfigs.release
+        }
+    }
+}

@@ -58,6 +58,12 @@ O contrato visual é independente do mecanismo do banco. Um novo coletor deve pr
 
 O roteiro completo para pessoas e agentes de IA está em [docs/ADAPTANDO-OUTROS-BANCOS.md](docs/ADAPTANDO-OUTROS-BANCOS.md). As regras curtas que uma IA deve seguir neste repositório estão em [AGENTS.md](AGENTS.md).
 
+## Android TV
+
+O diretório [android-tv](android-tv) contém um aplicativo nativo mínimo que apresenta o painel em uma `WebView` de tela cheia. O projeto inclui launcher para TV, suporte a controle remoto, tela sempre ligada, recuperação de conexão e URL configurável no build. Endereços internos, chaves de assinatura e APKs permanecem fora do Git.
+
+As instruções de compilação estão em [android-tv/README.md](android-tv/README.md).
+
 ## Estrutura
 
 | Caminho | Responsabilidade |
@@ -70,6 +76,7 @@ O roteiro completo para pessoas e agentes de IA está em [docs/ADAPTANDO-OUTROS-
 | `service/app.py` | API, isolamento das origens e SSE |
 | `service/collector.py` | Consultas e normalização Db2 |
 | `service/db2.example.json` | Modelo sem credenciais reais |
+| `android-tv/` | Aplicativo WebView para Android TV |
 | `evidence/` | Capturas e validações locais da interface |
 
 ## Validação

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">DashDB</string>
+    <string name="connection_error">Sem conexão com o DashDB\nTentando novamente…</string>
+</resources>

@@ -18,6 +18,12 @@ credentials*.txt
 *.pem
 *.p12
 
+# Android TV build output and machine-specific configuration.
+android-tv/.gradle/
+android-tv/local.properties
+android-tv/**/build/
+*.apk
+
 # Operational deployment evidence stays local and must not enter public history.
 evidence/live-*
 evidence/futuristic-live-*
