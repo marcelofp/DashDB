@@ -65,6 +65,35 @@ function useMedia(query: string) {
   return matches;
 }
 
+function DashboardClock() {
+  const [now, setNow] = useState(runtime.clock);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!document.hidden && !runtime.frozen) setNow(runtime.clock());
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const date = new Date(now);
+  return (
+    <div className={s.clock}>
+      <span>
+        {date.toLocaleDateString("pt-BR", {
+          weekday: "short",
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          timeZone: "America/Sao_Paulo",
+        })}
+      </span>
+      <time>
+        {date.toLocaleTimeString("pt-BR", {
+          timeZone: "America/Sao_Paulo",
+        })}
+      </time>
+    </div>
+  );
+}
+
 export default function App({
   source: supplied,
   controls: suppliedControls,
@@ -94,14 +123,13 @@ export default function App({
     [hiddenCursor, setHiddenCursor] = useState(false),
     [alertFilter, setAlertFilter] = useState("all"),
     [sort, setSort] = useState("time");
-  const [now, setNow] = useState(runtime.clock),
-    [visible, setVisible] = useState(!document.hidden),
+  const [visible, setVisible] = useState(!document.hidden),
     [notice, setNotice] = useState("");
   const reduced = useMedia("(prefers-reduced-motion: reduce)"),
     compact = useMedia("(max-width: 1150px)");
   const board = useRef<HTMLDivElement>(null),
     settingsButton = useRef<HTMLButtonElement>(null);
-  const actualQuality = compact ? "eco" : quality;
+  const actualQuality = compact || runtime.tv ? "eco" : quality;
   const moving = !paused && !reduced && visible;
   useEffect(() => {
     controls?.setPaused(paused || !visible);
@@ -109,12 +137,8 @@ export default function App({
   useEffect(() => {
     const onVisibility = () => setVisible(!document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
-    const timer = setInterval(() => {
-      if (!document.hidden && !runtime.frozen) setNow(runtime.clock());
-    }, 1000);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      clearInterval(timer);
     };
   }, []);
   useEffect(() => {
@@ -214,6 +238,8 @@ export default function App({
       data-collector={sample.collector}
       data-source={sample.source}
       data-moving={moving}
+      data-quality={actualQuality}
+      data-tv={runtime.tv || undefined}
     >
       <a className={s.skipLink} href="#monitoramento">
         Ir para o monitoramento
@@ -266,22 +292,7 @@ export default function App({
               )}
             </select>
           </label>
-          <div className={s.clock}>
-            <span>
-              {new Date(now).toLocaleDateString("pt-BR", {
-                weekday: "short",
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                timeZone: "America/Sao_Paulo",
-              })}
-            </span>
-            <time>
-              {new Date(now).toLocaleTimeString("pt-BR", {
-                timeZone: "America/Sao_Paulo",
-              })}
-            </time>
-          </div>
+          <DashboardClock />
           <div className={s.wordmark}>
             <strong>
               CREA<span>SP</span>

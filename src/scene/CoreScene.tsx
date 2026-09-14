@@ -19,6 +19,19 @@ function ContextLifecycle({ onFailure }: { onFailure: () => void }) {
   return null;
 }
 
+function TelevisionFrameScheduler({ active }: { active: boolean }) {
+  const invalidate = useThree((state) => state.invalidate);
+  useEffect(() => {
+    if (!runtime.tv || !active) {
+      invalidate();
+      return;
+    }
+    const timer = window.setInterval(invalidate, 1000 / 30);
+    return () => window.clearInterval(timer);
+  }, [active, invalidate]);
+  return null;
+}
+
 function Ring({
   radius,
   y,
@@ -286,7 +299,7 @@ export default function CoreScene({
           ? demoConfig.graphics.maxDpr
           : demoConfig.graphics.economicalDpr,
       ]}
-      frameloop={moving && activity > 0 ? "always" : "demand"}
+      frameloop={runtime.tv ? "demand" : moving && activity > 0 ? "always" : "demand"}
       camera={{ position: [0, 3.8, 10.5], fov: 31 }}
       gl={{
         antialias: true,
@@ -297,6 +310,7 @@ export default function CoreScene({
       onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
     >
       <ContextLifecycle onFailure={onFailure} />
+      <TelevisionFrameScheduler active={moving && activity > 0} />
       <Hologram activity={activity} quality={quality} moving={moving} />
     </Canvas>
   );

@@ -5,7 +5,7 @@ import {
   useState,
   type RefObject,
 } from "react";
-import { demoConfig, type Quality } from "../config";
+import { demoConfig, runtime, type Quality } from "../config";
 import { flowIntensities, particleCounts } from "../data/simulation";
 import type { AppActivity, SessionGroup } from "../data/contracts";
 import { sessionIntensity } from "./activity";
@@ -103,10 +103,13 @@ export default function EnergyFlows({
     else svg.current?.pauseAnimations();
   }, [moving, layout]);
   const pixelScale = Math.max(0.82, layout.width / 1864);
-  const counts = particleCounts(
+  const baseCounts = particleCounts(
     apps.map((a) => a.sqlExecutionsPerSecond.value),
     quality === "eco",
   );
+  const counts = runtime.tv
+    ? baseCounts.map((count) => count > 0 ? Math.max(1, Math.ceil(count / 2)) : 0)
+    : baseCounts;
   const appRates = apps.map((app) => app.sqlExecutionsPerSecond.value);
   const appIntensities = flowIntensities(appRates);
   const peakRate = Math.max(0, ...appRates.map((rate) => rate ?? 0));
@@ -125,7 +128,9 @@ export default function EnergyFlows({
       return {
         id: group.id, channel: "session", intensity,
         dominant: false,
-        count: intensity > 0 ? Math.ceil(intensity * (quality === "eco" ? 3 : 5)) : 0,
+        count: intensity > 0
+          ? Math.ceil(intensity * (runtime.tv ? 2 : quality === "eco" ? 3 : 5))
+          : 0,
         path: layout.sessionPaths[i], duration: 3.8 - intensity * 1.2,
       };
     }),
@@ -144,7 +149,8 @@ export default function EnergyFlows({
         </filter>
       </defs>
       {streams.map((stream) => {
-        const { intensity, count, path, duration, id, channel, dominant } = stream;
+        const { intensity, count, path, duration: baseDuration, id, channel, dominant } = stream;
+        const duration = runtime.tv ? baseDuration * 0.82 : baseDuration;
         const session = channel === "session";
         const color = session ? "#25dbff" :
             dominant
@@ -184,25 +190,27 @@ export default function EnergyFlows({
                 stroke={color}
                 strokeWidth={width * 4}
                 opacity={0.22 + intensity * 0.42}
-                filter="url(#flow-glow)"
+                filter={quality === "high" ? "url(#flow-glow)" : undefined}
               />
             )}
             {Array.from({ length: count }, (_, j) => (
               <g key={j} data-particle="true">
-                <circle
-                  r={(3 + intensity * 2.5) * pixelScale}
-                  fill={color}
-                  filter={quality === "high" ? "url(#flow-glow)" : undefined}
-                >
-                  <animateMotion
-                    dur={`${duration}s`}
-                    begin={`${(-j / count) * duration}s`}
-                    repeatCount="indefinite"
-                    calcMode="paced"
+                {!runtime.tv && (
+                  <circle
+                    r={(3 + intensity * 2.5) * pixelScale}
+                    fill={color}
+                    filter={quality === "high" ? "url(#flow-glow)" : undefined}
                   >
-                    <mpath href={`#${pathId}`} />
-                  </animateMotion>
-                </circle>
+                    <animateMotion
+                      dur={`${duration}s`}
+                      begin={`${(-j / count) * duration}s`}
+                      repeatCount="indefinite"
+                      calcMode="paced"
+                    >
+                      <mpath href={`#${pathId}`} />
+                    </animateMotion>
+                  </circle>
+                )}
                 <path
                   d={`M${-22 * pixelScale} 0 H0 M${-8 * pixelScale} ${-3 * pixelScale} L0 0 L${-8 * pixelScale} ${3 * pixelScale}`}
                   stroke={intensity > 0.3 ? "#f8caff" : "#8feaff"}

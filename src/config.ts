@@ -56,6 +56,7 @@ export const runtime = {
   frozen: query.get("freeze") === "1",
   svg: query.get("webgl") === "0",
   profile: query.get("profile") === "1",
+  tv: typeof navigator !== "undefined" && /DashDB-TV\//.test(navigator.userAgent),
   liveSource: (query.get("db") === "huawei"
     ? "huawei"
     : "cirion") as LiveSourceId,
